@@ -1,6 +1,6 @@
 import torch
 import os
-from PytorchNet import PytorchNetV1SE
+from PytorchNet import PytorchNetV2
 # import cv2
 import numpy as np
 import onnx
@@ -34,7 +34,8 @@ def load_model(model_path):
                           if torch.cuda.is_available() else "cpu")
 
     kernel_size = get_kernel(h_input, w_input, )
-    model = PytorchNetV1SE(conv6_kernel=kernel_size).to(device)
+    #model = PytorchNetV1SE(conv6_kernel=kernel_size).to(device)
+    model = PytorchNetV2(conv6_kernel=kernel_size).to(device)
 
     state_dict = torch.load(model_path, map_location=device)
     keys = iter(state_dict)
@@ -56,7 +57,7 @@ def torch2onnx(torch_model, sample_input):
     torch.onnx.export(
         torch_model,  # PyTorch Model
         sample_input,  # Input tensor
-        "model/output_model.onnx",  # Output file (eg. 'output_model.onnx')
+        "model/output_model2.onnx",  # Output file (eg. 'output_model.onnx')
         opset_version=12,  # Operator support version
         input_names=['input'],  # Input tensor name (arbitary)
         output_names = ['output']  # Output tensor name (arbitary)
@@ -65,22 +66,29 @@ def torch2onnx(torch_model, sample_input):
 
 
 def onnx2tf():
-    onnx_model = onnx.load("model/output_model.onnx")
+    onnx_model = onnx.load("model/output_model2.onnx")
     onnx.checker.check_model(onnx_model)
-    onnx.helper.printable_graph(onnx_model.graph)
-    # tf_rep = onnx_tf.backend.prepare(onnx_model, device="CPU")
+    # onnx.helper.printable_graph(onnx_model.graph)
+    tf_rep = onnx_tf.backend.prepare(onnx_model, device="CPU")
     #tf_rep = prepare(onnx_model)
-    #tf_rep.export_graph("model/tf_model")
+    tf_rep.export_graph("model/tf_model2")
 
+
+def tf2tflite():
+    converter = tensorflow.lite.TFLiteConverter.from_saved_model("model/tf_model2")
+    tflite_model = converter.convert()
+    with open("model/model2.tflite", 'wb') as f:
+        f.write(tflite_model)
 
 if __name__ == '__main__':
-    model_path = "model/4_0_0_80x80_MiniFASNetV1SE.pth"
+    #model_path = "model/4_0_0_80x80_MiniFASNetV1SE.pth"
+    model_path = "model/2.7_80x80_MiniFASNetV2.pth"
     height, width, torch_model = load_model(model_path)
     sample_input = torch.rand((1, 3, height, width))
     torch_model.eval()
 
     torch2onnx(torch_model, sample_input)
     onnx2tf()
+    tf2tflite()
 
-    #pytorch = load_torch_model(torch_model_path)
-    #print(pytorch)
+    #torch_output = inference_torch()
