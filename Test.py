@@ -1,8 +1,7 @@
 import tensorflow as tf
 import cv2
-from keras.preprocessing.image import image_utils as image
+import keras.preprocessing.image as image
 import numpy as np
-import matplotlib.pyplot as plt
 from util import transform as trans
 
 def detect_face(img, faceCascade):
